@@ -1,104 +1,104 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+import time
+import io
 import pyautogui
-import base64
-from io import BytesIO
+from fastapi import FastAPI, Body
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import List
 
-app = FastAPI(title="Kairoswarm Control Server")
+app = FastAPI(
+    title="Kairoswarm Control",
+    description="Local control server for Kairoswarm agents",
+)
 
-# -------------------------------
-# Mouse Actions
-# -------------------------------
-
-class MouseMoveRequest(BaseModel):
+# ---------- MODELS ----------
+class MouseMove(BaseModel):
     x: int
     y: int
 
+class MouseClick(BaseModel):
+    button: str = "left"  # "left", "right", or "middle"
+
+class KeyPress(BaseModel):
+    key: str  # e.g. "a", "enter", "ctrl"
+
+# ---------- ROUTES ----------
+
+@app.get("/")
+def root():
+    return {"status": "Kairoswarm Control running locally"}
+
 @app.post("/mouse/move")
-def move_mouse(req: MouseMoveRequest):
-    pyautogui.moveTo(req.x, req.y)
-    return {"status": "ok", "x": req.x, "y": req.y}
+def mouse_move(cmd: MouseMove):
+    pyautogui.moveTo(cmd.x, cmd.y, duration=0.3)
+    return {"moved_to": (cmd.x, cmd.y)}
 
-
-class MouseClickRequest(BaseModel):
-    button: str = "left"  # left, right, middle
-
-@app.post("/mouse/click")
-def click_mouse(req: MouseClickRequest):
-    pyautogui.click(button=req.button)
-    return {"status": "ok", "button": req.button}
-
-
-class MouseDragRequest(BaseModel):
+class MouseDrag(BaseModel):
     x: int
     y: int
     duration: float = 0.5
+    button: str = "left"  # Ensure it's one of: left, middle, right
 
 @app.post("/mouse/drag")
-def drag_mouse(req: MouseDragRequest):
-    pyautogui.dragTo(req.x, req.y, duration=req.duration)
-    return {"status": "ok", "x": req.x, "y": req.y}
+def mouse_drag(cmd: MouseDrag):
+    if cmd.button not in ("left", "middle", "right"):
+        return {"error": "Invalid button. Must be 'left', 'middle', or 'right'."}
+    
+    pyautogui.mouseDown(button=cmd.button)
+    pyautogui.moveTo(cmd.x, cmd.y, duration=cmd.duration)
+    pyautogui.mouseUp(button=cmd.button)
+    return {
+        "dragged_to": (cmd.x, cmd.y),
+        "duration": cmd.duration,
+        "button": cmd.button
+    }
 
-
-# -------------------------------
-# Keyboard Actions
-# -------------------------------
-
-class TypeTextRequest(BaseModel):
-    text: str
-
-@app.post("/keyboard/type")
-def type_text(req: TypeTextRequest):
-    pyautogui.typewrite(req.text)
-    return {"status": "ok", "text": req.text}
-
-
-class KeyPressRequest(BaseModel):
-    key: str
+@app.post("/mouse/click")
+def mouse_click(cmd: MouseClick):
+    pyautogui.click(button=cmd.button)
+    return {"clicked": cmd.button}
 
 @app.post("/keyboard/press")
-def press_key(req: KeyPressRequest):
-    pyautogui.press(req.key)
-    return {"status": "ok", "key": req.key}
-
-
-class HotkeyRequest(BaseModel):
-    keys: list[str]
-
-@app.post("/keyboard/hotkey")
-def hotkey(req: HotkeyRequest):
-    pyautogui.hotkey(*req.keys)
-    return {"status": "ok", "keys": req.keys}
-
-
-# -------------------------------
-# Screen Actions
-# -------------------------------
+def keyboard_press(cmd: KeyPress):
+    pyautogui.press(cmd.key)
+    return {"pressed": cmd.key}
 
 @app.get("/screenshot")
 def screenshot():
+    # Take screenshot
     screenshot = pyautogui.screenshot()
-    buffered = BytesIO()
-    screenshot.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    return {"status": "ok", "image_base64": img_str}
+
+    # Save it to an in-memory buffer
+    buf = io.BytesIO()
+    screenshot.save(buf, format="PNG")
+    buf.seek(0)
+
+    # Stream directly without writing to disk
+    return StreamingResponse(buf, media_type="image/png")
+
+# ---------- NEW ROUTES ----------
+class ScrollRequest(BaseModel):
+    amount: int
+
+@app.post("/mouse/scroll")
+def mouse_scroll(req: ScrollRequest):
+    pyautogui.scroll(req.amount)
+    return {"scrolled": req.amount}
+
+@app.post("/keyboard/type")
+def keyboard_type(text: str = Body(...)):
+    """Type a string of text."""
+    pyautogui.typewrite(text)
+    return {"typed": text}
 
 
-class LocateImageRequest(BaseModel):
-    image_base64: str
 
-@app.post("/locate")
-def locate_image(req: LocateImageRequest):
-    # Save incoming image to temp file
-    try:
-        img_bytes = base64.b64decode(req.image_base64)
-        with open("temp_target.png", "wb") as f:
-            f.write(img_bytes)
+class HotkeyRequest(BaseModel):
+    keys: List[str]
 
-        location = pyautogui.locateOnScreen("temp_target.png", confidence=0.8)
-        if location:
-            return {"status": "ok", "location": location._asdict()}
-        else:
-            return {"status": "not_found"}
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+@app.post("/keyboard/hotkey")
+def keyboard_hotkey(cmd: HotkeyRequest):
+    """Press a combination of keys, e.g. ctrl+c."""
+    pyautogui.hotkey(*cmd.keys)
+    return {"hotkey": cmd.keys}
+
