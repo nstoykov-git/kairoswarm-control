@@ -1,0 +1,10 @@
+{
+  "steps": [
+    {"action": "mouse_move", "x": 200, "y": 200},
+    {"action": "pause", "duration": 1},
+    {"action": "mouse_click", "button": "left"},
+    {"action": "keyboard_type", "text": "Hello from curl!"},
+    {"action": "keyboard_press", "key": "enter"}
+  ]
+}
+
