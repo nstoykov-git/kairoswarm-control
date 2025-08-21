@@ -103,6 +103,7 @@ async def run_agent() -> None:
             async with websockets.connect(WS_URL) as ws:
                 print(f"✅ Connected to Modal at {WS_URL}")
                 await ws.send(json.dumps({"status": "ready", "client_id": CLIENT_ID}))
+                print("✅ Ready message sent to Modal")
 
                 async for message in ws:
                     try:
