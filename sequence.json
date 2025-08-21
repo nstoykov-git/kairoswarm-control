@@ -3,8 +3,17 @@
     {"action": "mouse_move", "x": 200, "y": 200},
     {"action": "pause", "duration": 1},
     {"action": "mouse_click", "button": "left"},
+
     {"action": "keyboard_type", "text": "Hello from curl!"},
-    {"action": "keyboard_press", "key": "enter"}
+    {"action": "keyboard_press", "key": "enter"},
+    {"action": "pause", "duration": 1},
+
+    {"action": "keyboard_hotkey", "keys": ["ctrl", "a"]},
+    {"action": "pause", "duration": 1},
+
+    {"action": "mouse_drag", "x": 400, "y": 400, "button": "left"},
+    {"action": "pause", "duration": 1},
+
+    {"action": "mouse_scroll", "amount": -500}
   ]
 }
-

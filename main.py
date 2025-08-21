@@ -98,11 +98,19 @@ def mouse_scroll(req: ScrollRequest):
     return {"scrolled": req.amount}
 
 
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import pyautogui
+import io
+
+app = FastAPI()
+
 @app.get("/screenshot")
-def screenshot():
-    screenshot = pyautogui.screenshot()
+async def screenshot():
+    # Capture screenshot to memory
+    img = pyautogui.screenshot()
     buf = io.BytesIO()
-    screenshot.save(buf, format="PNG")
+    img.save(buf, format="PNG")
     buf.seek(0)
     return StreamingResponse(buf, media_type="image/png")
 
@@ -140,6 +148,19 @@ def run_sequence(req: SequenceRequest):
         elif step.action == "mouse_click":
             pyautogui.click(button=step.button)
             results.append({"clicked": step.button})
+
+        elif step.action == "mouse_drag" and step.x is not None and step.y is not None:
+            if step.button not in ("left", "middle", "right"):
+                results.append({"error": "Invalid button. Must be 'left', 'middle', or 'right'."})
+            else:
+                pyautogui.mouseDown(button=step.button)
+                pyautogui.moveTo(step.x, step.y, duration=step.duration)
+                pyautogui.mouseUp(button=step.button)
+                results.append({
+                    "dragged_to": (step.x, step.y),
+                    "duration": step.duration,
+                    "button": step.button
+                })
 
         elif step.action == "keyboard_press" and step.key:
             pyautogui.press(step.key)
