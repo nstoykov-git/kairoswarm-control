@@ -10,7 +10,7 @@ import websockets
 
 # ---------- CONFIG ----------
 CLIENT_ID = "local-test-client"  # later: unique per user
-WS_URL = f"wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/ws/client/{CLIENT_ID}"
+WS_URL = f"wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/control/ws/client/{CLIENT_ID}"
 
 
 # ---------- HELPERS ----------
