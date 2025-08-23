@@ -11,6 +11,7 @@ async def main():
         try:
             async with websockets.connect(WS_URL) as ws:
                 print(f"✅ Connected to Portal server at {WS_URL}")
+
                 # 🔑 Handshake: register as agent
                 await ws.send(json.dumps({"portal_id": PORTAL_ID, "role": "agent"}))
                 print(f"✅ Handshake sent (portal={PORTAL_ID}, role=agent)")

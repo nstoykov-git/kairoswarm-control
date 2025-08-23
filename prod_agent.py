@@ -6,14 +6,15 @@ import base64
 import pyautogui
 import websockets
 
+
 # ---------- CONFIG ----------
-PORTAL_ID = "local-test-portal"  # TODO: set this dynamically
-WS_URL = "wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/portals/ws"  # new multiplexed endpoint
+PORTAL_ID = "local-test-portal"
+WS_URL = "wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/portals/ws"
 
 
 # ---------- HELPERS ----------
 async def handle_command(cmd: dict) -> dict:
-    """Execute a single command from Portal and return a result dict."""
+    """Execute a single command from Modal and return a result dict."""
     action = cmd.get("action")
 
     try:
@@ -99,12 +100,13 @@ async def handle_command(cmd: dict) -> dict:
 
 
 # ---------- MAIN LOOP ----------
-async def run_device() -> None:
+async def run_agent() -> None:
     while True:
         try:
             async with websockets.connect(WS_URL) as ws:
                 print(f"✅ Connected to Portal server at {WS_URL}")
-                # 🔑 Handshake: register as device for this portal
+
+                # 🔑 Proper handshake
                 await ws.send(json.dumps({"portal_id": PORTAL_ID, "role": "device"}))
                 print(f"✅ Handshake sent (portal={PORTAL_ID}, role=device)")
 
@@ -118,14 +120,15 @@ async def run_device() -> None:
                             "role": "device",
                             "result": result
                         }))
+                        print(f"📤 Sent result: {result}")
                     except Exception as e:
                         err = {"error": str(e)}
                         await ws.send(json.dumps(err))
-
+                        print(f"❌ Error while handling command: {e}")
         except Exception as e:
             print(f"❌ Connection failed: {e}, retrying in 3s...")
             await asyncio.sleep(3)
 
 
 if __name__ == "__main__":
-    asyncio.run(run_device())
+    asyncio.run(run_agent())
