@@ -8,7 +8,7 @@ import websockets
 
 # ---------- CONFIG ----------
 PORTAL_ID = "local-test-portal"  # TODO: set this dynamically
-WS_URL = "wss://kairoswarm.com/portals"  # new multiplexed endpoint
+WS_URL = "wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/portals/ws"  # new multiplexed endpoint
 
 
 # ---------- HELPERS ----------
