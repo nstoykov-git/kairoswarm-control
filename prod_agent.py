@@ -6,15 +6,14 @@ import base64
 import pyautogui
 import websockets
 
-
 # ---------- CONFIG ----------
-CLIENT_ID = "local-test-client"  # later: unique per user
-WS_URL = f"wss://nstoykov-git--kairoswarm-serverless-api-fastapi-app.modal.run/control/ws/client/{CLIENT_ID}"
+PORTAL_ID = "local-test-portal"  # TODO: set this dynamically
+WS_URL = "wss://kairoswarm.com/portals"  # new multiplexed endpoint
 
 
 # ---------- HELPERS ----------
 async def handle_command(cmd: dict) -> dict:
-    """Execute a single command from Modal and return a result dict."""
+    """Execute a single command from Portal and return a result dict."""
     action = cmd.get("action")
 
     try:
@@ -100,28 +99,33 @@ async def handle_command(cmd: dict) -> dict:
 
 
 # ---------- MAIN LOOP ----------
-async def run_agent() -> None:
+async def run_device() -> None:
     while True:
         try:
             async with websockets.connect(WS_URL) as ws:
-                print(f"✅ Connected to Modal at {WS_URL}")
-                # 🔑 Proper handshake
-                await ws.send(json.dumps({"role": "agent", "client_id": CLIENT_ID}))
-                print("✅ Agent handshake sent")
+                print(f"✅ Connected to Portal server at {WS_URL}")
+                # 🔑 Handshake: register as device for this portal
+                await ws.send(json.dumps({"portal_id": PORTAL_ID, "role": "device"}))
+                print(f"✅ Handshake sent (portal={PORTAL_ID}, role=device)")
 
                 async for message in ws:
                     try:
                         cmd = json.loads(message)
                         print(f"📥 Received: {cmd}")
                         result = await handle_command(cmd)
-                        await ws.send(json.dumps({"result": result, "client_id": CLIENT_ID}))
+                        await ws.send(json.dumps({
+                            "portal_id": PORTAL_ID,
+                            "role": "device",
+                            "result": result
+                        }))
                     except Exception as e:
                         err = {"error": str(e)}
                         await ws.send(json.dumps(err))
+
         except Exception as e:
             print(f"❌ Connection failed: {e}, retrying in 3s...")
             await asyncio.sleep(3)
 
 
 if __name__ == "__main__":
-    asyncio.run(run_agent())
+    asyncio.run(run_device())
