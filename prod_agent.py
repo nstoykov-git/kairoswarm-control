@@ -47,7 +47,7 @@ async def handle_command(cmd: dict) -> dict:
             return {"typed": text}
 
         elif action == "keyboard_press":
-            key = cmd["key"]
+            key = cmd["key"].lower()
             pyautogui.press(key)
             return {"pressed": key}
 
